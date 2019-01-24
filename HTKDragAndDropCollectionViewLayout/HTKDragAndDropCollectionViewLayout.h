@@ -52,6 +52,20 @@
 #pragma mark - Dragging Properties
 
 /**
+ * Our item array that holds the "sorted" items in the collectionView.
+ * this array is re-ordered while user is dragging a cell. Our layout
+ * uses this to then show the items in that sorted order.
+ */
+@property (nonatomic, strong) NSMutableArray *itemArray;
+
+/**
+ * Our dictionary of layout attributes where the indexPath is the key. Used
+ * to retrieve the layout attributes for a particular indexPath since
+ * it may be different than the order in itemArray.
+ */
+@property (nonatomic, strong) NSMutableDictionary *itemDictionary;
+
+/**
  * IndexPath that's currently being dragged. Nil if not dragging.
  */
 @property (nonatomic, strong) NSIndexPath *draggedIndexPath;
@@ -87,5 +101,7 @@
  * Resets dragging. Called when user ends dragging of a cell.
  */
 - (void)resetDragging;
+
+- (void)resetLayout;
 
 @end

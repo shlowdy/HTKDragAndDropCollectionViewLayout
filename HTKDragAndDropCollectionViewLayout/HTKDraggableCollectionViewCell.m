@@ -39,6 +39,11 @@
 @property (nonatomic) BOOL allowPan;
 
 /**
+ *  拖动时添加的遮罩
+ */
+@property (nonatomic, strong) UIView *maskView;
+
+/**
  * Sets up the cell
  */
 - (void)setupDraggableCell;
@@ -73,54 +78,66 @@
 #pragma mark - Cell Setup
 
 - (void)setupDraggableCell {
-
     // Add our pan gesture to cell
     self.panGestureRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanGesture:)];
     self.panGestureRecognizer.delegate = self;
     [self addGestureRecognizer:self.panGestureRecognizer];
-    
+
     // Add our long press to cell
     self.longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(handleLongPressGesture:)];
     // Wait time before we being dragging
-    self.longPressGestureRecognizer.minimumPressDuration = 1.0;
+    self.longPressGestureRecognizer.minimumPressDuration = 0.5;
     self.longPressGestureRecognizer.delegate = self;
-   [self addGestureRecognizer:self.longPressGestureRecognizer];
+    [self addGestureRecognizer:self.longPressGestureRecognizer];
+}
+
+- (void)showSelectMaskView {
+    if (!_maskView) {
+        _maskView = [[UIView alloc] initWithFrame:self.bounds];
+        _maskView.backgroundColor = [[UIColor alloc] initWithRed:0.0 green:0.0 blue:0.0 alpha:0.6];
+        _maskView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        [self addSubview:_maskView];
+    }
+
+    _maskView.hidden = NO;
+}
+
+- (void)hideSelectMaskView {
+    _maskView.hidden = YES;
 }
 
 #pragma mark - UIGestureRecognizer Delegates
 
-- (BOOL) gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
-shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-    if ([gestureRecognizer isKindOfClass:[UILongPressGestureRecognizer class]] && [otherGestureRecognizer isKindOfClass:[UIPanGestureRecognizer class]]) {
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    if ([gestureRecognizer isKindOfClass:UILongPressGestureRecognizer.class] && [otherGestureRecognizer isKindOfClass:UIPanGestureRecognizer.class]) {
         return YES;
     }
+
     return NO;
 }
 
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
-    
     // Check if panning is disabled
-    if([gestureRecognizer isKindOfClass:[UIPanGestureRecognizer class]] && !_allowPan) {
+    if ([gestureRecognizer isKindOfClass:UIPanGestureRecognizer.class] && !_allowPan) {
         return NO;
     }
-
     // Determine if user can drag cell
     BOOL cellCanDrag = YES;
     if ([self.draggingDelegate respondsToSelector:@selector(userCanDragCell:)]) {
         cellCanDrag = [self.draggingDelegate userCanDragCell:self];
     }
+
     return cellCanDrag;
 }
 
 #pragma mark - UIGestureRecognizer Handlers
 
 - (void)handleLongPressGesture:(UILongPressGestureRecognizer *)longPressGesture {
-
     switch (longPressGesture.state) {
         case UIGestureRecognizerStateBegan: {
-            // Set initial alpha to show user they can
-            // begin dragging.
             self.alpha = HTKDraggableCellInitialDragAlphaValue;
+            [self showSelectMaskView];
+
             self.allowPan = YES;
             break;
         }
@@ -131,12 +148,18 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherG
         case UIGestureRecognizerStateEnded:
         case UIGestureRecognizerStateFailed:
         case UIGestureRecognizerStateCancelled: {
-            // set alpha back
-            self.alpha = 1.0;
             self.allowPan = NO;
             // Cause pan to cancel
             self.panGestureRecognizer.enabled = NO;
             self.panGestureRecognizer.enabled = YES;
+
+            // Set alpha back
+            self.alpha = 1.0;
+            [self hideSelectMaskView];
+
+            if ([self.draggingDelegate respondsToSelector:@selector(userDidEndDraggingCell:)]) {
+                [self.draggingDelegate userDidEndDraggingCell:self];
+            }
             break;
         }
         default:
@@ -145,7 +168,6 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherG
 }
 
 - (void)handlePanGesture:(UIPanGestureRecognizer *)panGesture {
-    
     switch (panGesture.state) {
         case UIGestureRecognizerStateBegan: {
             if ([self.draggingDelegate respondsToSelector:@selector(userDidBeginDraggingCell:)]) {
@@ -164,9 +186,6 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherG
         case UIGestureRecognizerStateEnded: {
             // Set alpha back
             self.alpha = 1.0;
-            if ([self.draggingDelegate respondsToSelector:@selector(userDidEndDraggingCell:)]) {
-                [self.draggingDelegate userDidEndDraggingCell:self];
-            }
             break;
         }
         default:

@@ -22,11 +22,10 @@
  * Center trigger offset. forms a 20pt box around center of cell
  * to determine if we should exchange it with the dragged cell.
  */
-static CGFloat HTKDragAndDropCenterTriggerOffset = 10.0f;
+static CGFloat HTKDragAndDropCenterTriggerOffset = 30.0;
 
 /**
  * Initial alpha value when dragging will begin. Used to
  * show user that dragging is enabled.
  */
 static CGFloat HTKDraggableCellInitialDragAlphaValue = 0.8;
-
